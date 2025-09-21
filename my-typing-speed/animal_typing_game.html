@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Typing Speed Challenge</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS for animations and fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Main Background: Plain color */
+            background-color: #e0f2f7; /* Light blue background */
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars from animation */
+        }
+
+        #game-container {
+            background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white for game container */
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* Stronger shadow for contrast */
+            padding: 20px;
+            width: 95%; /* Responsive width */
+            max-width: 600px; /* Max width for larger screens */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            overflow: hidden; /* Hide overflowing animal elements */
+        }
+
+        #game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.25rem; /* Larger font for header */
+            font-weight: bold;
+            color: #2c3e50; /* Darker text */
+            flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+            gap: 10px; /* Space between header items when wrapped */
+        }
+
+        /* Styling for Score, Timer, Lives, and Level displays (Glassmorphism effect) */
+        #game-header > div {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Space between icon and text */
+            background-color: rgba(255, 255, 255, 0.4); /* Semi-transparent white */
+            backdrop-filter: blur(8px); /* Frosted glass effect */
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle light border */
+            border-radius: 12px;
+            padding: 8px 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1); /* Subtle text shadow for readability */
+            transition: all 0.3s ease; /* Smooth transitions for any changes */
+        }
+
+        #game-header > div:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        #game-header svg {
+            width: 24px;
+            height: 24px;
+            fill: #3498db; /* Icon color */
+        }
+
+        #animal-area {
+            position: relative;
+            height: 150px; /* Area where animals float */
+            width: 100%;
+            overflow: hidden; /* Ensure animals disappear when they go off screen */
+            border: 2px dashed #a7d9ed;
+            border-radius: 10px;
+            background-image: url('https://i.postimg.cc/Yq2dJ4Rb/background1.png');
+            background-size: cover;
+            background-position: center center; 
+            background-repeat: no-repeat; 
+
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-start; 
+        }
+
+        
+        .animal-display {
+            position: absolute;
+            white-space: nowrap; 
+            display: flex;
+            align-items: center;
+            gap: 10px; 
+            padding: 5px 15px; 
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            left: 100%; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            animation-timing-function: linear;
+            animation-fill-mode: forwards;
+        }
+
+        .animal-emoji {
+            font-size: 3.5rem; 
+            line-height: 1; 
+        }
+
+        .animal-text {
+            font-size: 2rem; /* Size of the animal name text */
+            font-weight: bold;
+            color: #34495e; /* Darker text color */
+            text-decoration: underline; /* Underline the text */
+            text-underline-offset: 5px; /* Space between text and underline */
+            text-decoration-color: #3498db; /* Color of the underline */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05); /* Subtle shadow for text */
+        }
+
+
+        @keyframes move-animal {
+            from { left: 100%; }
+            to { left: -150%; } /* Move far enough to disappear */
+        }
+
+        #typing-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.75rem; /* Large input font */
+            text-align: center;
+            border: 2px solid #a7d9ed;
+            border-radius: 10px;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.3s ease;
+            color: #2c3e50;
+        }
+
+        #typing-input:focus {
+            border-color: #3498db;
+        }
+
+        #message-area {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            color: #e74c3c; /* Red for game over */
+            min-height: 30px; /* Reserve space */
+        }
+
+        /* Start Button Styling */
+        #start-button {
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background-image: linear-gradient(to right, #2ecc71, #27ae60); /* Green gradient */
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 10px rgba(46, 204, 113, 0.4);
+            align-self: center;
+        }
+
+        #start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(46, 204, 113, 0.6);
+        }
+
+        #start-button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 6px rgba(46, 204, 113, 0.4);
+        }
+
+        /* Pulse animation for start button when idle */
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 5px 10px rgba(46, 204, 113, 0.4); }
+            50% { transform: scale(1.02); box-shadow: 0 8px 15px rgba(46, 204, 113, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 5px 10px rgba(46, 204, 113, 0.4); }
+        }
+        #start-button.pulse-animation {
+            animation: pulse 2s infinite alternate;
+        }
+
+
+        /* Virtual Keyboard Styling */
+        #virtual-keyboard {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr); /* Adjust as needed for keys */
+            gap: 8px;
+            padding: 10px;
+            background-color: #ecf0f1; /* Light gray background */
+            border-radius: 15px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .keyboard-button {
+            padding: 12px 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background-color: #ffffff;
+            border: 1px solid #bdc3c7;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none; /* Prevent text selection on button */
+            min-width: 35px; /* Ensure buttons have a minimum size */
+        }
+
+        .keyboard-button:hover {
+            background-color: #e0e6e7;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .keyboard-button:active {
+            background-color: #d5dbdb;
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .keyboard-button.space-key {
+            grid-column: span 4; /* Make space bar wider */
+        }
+
+        .keyboard-button.enter-key {
+            grid-column: span 2; /* Make enter key wider */
+            background-image: linear-gradient(to right, #3498db, #2980b9); /* Blue gradient */
+            color: white;
+        }
+
+        /* Overlays Styling */
+        #gameOverOverlay, #levelUpOverlay, #highScoreInputOverlay { /* Combined for common overlay styles */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent dark overlay */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Ensure it's on top of everything */
+            opacity: 0; /* Start hidden */
+            visibility: hidden; /* Start hidden */
+            transition: opacity 0.3s ease, visibility 0.3s ease; /* Smooth fade in/out */
+        }
+
+        #gameOverOverlay.show, #levelUpOverlay.show, #highScoreInputOverlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .overlay-content {
+            background-color: #ffffff;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 90%;
+            transform: scale(0.9); /* Start slightly smaller */
+            transition: transform 0.3s ease; /* Smooth scale in */
+        }
+
+        #gameOverOverlay.show .overlay-content,
+        #levelUpOverlay.show .overlay-content,
+        #highScoreInputOverlay.show .overlay-content {
+            transform: scale(1); /* Scale to normal size */
+        }
+
+        .overlay-content h2 {
+            font-size: 3rem;
+            color: #e74c3c; /* Red for Game Over */
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .overlay-content p {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
+        .overlay-content button {
+            padding: 15px 40px;
+            font-size: 1.6rem;
+            font-weight: bold;
+            background-image: linear-gradient(to right, #3498db, #2980b9); /* Blue gradient for Play Again */
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 10px rgba(52, 152, 219, 0.4);
+        }
+
+        .overlay-content button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(52, 152, 219, 0.6);
+        }
+
+        .overlay-content button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 6px rgba(52, 152, 219, 0.4);
+        }
+
+        /* Level Up Specific Styles */
+        #levelUpBadge {
+            font-size: 5rem; /* Large emoji for badge */
+            margin-top: 10px;
+            animation: bounceIn 0.8s ease-out; /* Badge animation */
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+
+        /* High Score Input Specific Styles */
+        #highScoreInput {
+            width: 80%;
+            padding: 12px;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            text-align: center;
+            border: 2px solid #a7d9ed;
+            border-radius: 10px;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        /* High Score Table Styles */
+        #highScoresDisplay {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 400px;
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(5px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            display: none; /* Hidden by default */
+        }
+
+        #highScoresDisplay h3 {
+            font-size: 2.2rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+        }
+
+        #highScoresTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        #highScoresTable th, #highScoresTable td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+            font-size: 1.2rem;
+            color: #34495e;
+        }
+
+        #highScoresTable th {
+            background-color: #e0f2f7;
+            font-weight: bold;
+            color: #2c3e50;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        #highScoresTable tr:last-child td {
+            border-bottom: none;
+        }
+
+        #highScoresTable tr:nth-child(odd) {
+            background-color: rgba(240, 248, 255, 0.5); /* Light stripe */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            #game-header {
+                flex-direction: column; /* Stack items vertically on small screens */
+                align-items: flex-start; /* Align to the left */
+            }
+            #game-container {
+                padding: 15px;
+                gap: 15px;
+            }
+            #game-header {
+                font-size: 1rem;
+            }
+            #game-header > div {
+                padding: 6px 10px;
+                gap: 5px;
+                width: 100%; /* Make each header item full width */
+            }
+            #game-header svg {
+                width: 20px;
+                height: 20px;
+            }
+            /* Adjusted for smaller emoji/text size on small screens */
+            .animal-emoji {
+                font-size: 2.5rem;
+            }
+            .animal-text {
+                font-size: 1.5rem;
+            }
+            #typing-input {
+                font-size: 1.5rem;
+                padding: 12px;
+            }
+            #message-area {
+                font-size: 1.2rem;
+            }
+            #start-button {
+                font-size: 1.2rem;
+                padding: 12px 25px;
+            }
+            .keyboard-button {
+                font-size: 1rem;
+                padding: 10px 0;
+                min-width: 30px;
+            }
+            #virtual-keyboard {
+                gap: 5px;
+            }
+            #gameOverContent h2 {
+                font-size: 2.5rem;
+            }
+            #gameOverContent p {
+                font-size: 1.4rem;
+            }
+            #gameOverContent button {
+                font-size: 1.4rem;
+                padding: 12px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-header">
+            <div id="score">
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z"/>
+                </svg>
+                <span>Score: 0</span>
+            </div>
+            <div id="timer">
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM12.5 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7Z"/>
+                </svg>
+                <span>Time: 60s</span>
+            </div>
+            <div id="lives">
+                <span>Lives: ❤️❤️❤️</span>
+            </div>
+            <div id="currentLevelDisplay">
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1ZM12 11.19L19 7.5V5.5L12 2.5L5 5.5V7.5L12 11.19Z"/>
+                </svg>
+                <span>Level: Easy</span>
+            </div>
+        </div>
+
+        <div id="animal-area">
+            <!-- Animal emojis and text will appear here -->
+        </div>
+
+        <div id="input-container">
+            <input type="text" id="typing-input" placeholder="Type the animal name here..." disabled>
+        </div>
+
+        <div id="message-area">
+            <!-- Game messages will appear here -->
+        </div>
+
+        <button id="start-button" class="pulse-animation">Start Game</button>
+
+        <div id="virtual-keyboard" class="hidden">
+            <!-- Virtual keyboard buttons will be generated here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Level Up Overlay -->
+    <div id="levelUpOverlay">
+        <div class="overlay-content">
+            <h2 id="levelUpMessage"></h2>
+            <p id="levelUpBadge"></p>
+        </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div id="gameOverOverlay">
+        <div id="gameOverContent" class="overlay-content">
+            <h2 id="gameOverMessage">Game Over!</h2>
+            <p id="finalScore">Your Score: 0</p>
+            <!-- High score input will appear here if on hard level -->
+            <div id="highScoreSubmission" style="display: none;">
+                <p>Enter your name for the leaderboard:</p>
+                <input type="text" id="highScoreInput" placeholder="Your Name" maxlength="15">
+                <button id="submitScoreButton">Submit Score</button>
+            </div>
+            <button id="playAgainButton">Play Again!</button>
+        </div>
+    </div>
+
+    <!-- High Scores Display (Separate from game over, can be shown anytime) -->
+    <div id="highScoresDisplay">
+        <h3>🏆 High Scores 🏆</h3>
+        <table id="highScoresTable">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Name</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- High scores will be inserted here by JavaScript -->
+            </tbody>
+        </table>
+        <button id="closeHighScoresButton" class="mt-4">Close</button>
+    </div>
+
+
+    <!-- Audio elements for sound effects -->
+    <!-- Sound files from soundjay.com, ensure they are accessible -->
+    <audio id="correctSound" src="https://www.soundjay.com/buttons/beep-07.mp3" preload="auto"></audio>
+    <audio id="incorrectSound" src="https://www.soundjay.com/misc/fail-buzzer-01.mp3" preload="auto"></audio>
+
+    <script>
+        // Data structure for animals, now including emoji and the name to type
+        const ANIMAL_DATA = {
+            "elephant": { emoji: "🐘", name: "elephant" },
+            "tiger": { emoji: "🐅", name: "tiger" },
+            "giraffe": { emoji: "🦒", name: "giraffe" },
+            "zebra": { emoji: "🦓", name: "zebra" },
+            "monkey": { emoji: "🐒", name: "monkey" },
+            "lion": { emoji: "🦁", name: "lion" },
+            "bear": { emoji: "🐻", name: "bear" },
+            "panda": { emoji: "🐼", name: "panda" },
+            "penguin": { emoji: "🐧", name: "penguin" },
+            "koala": { emoji: "🐨", name: "koala" },
+            "kangaroo": { emoji: "🦘", name: "kangaroo" },
+            "hippopotamus": { emoji: "🦛", name: "hippopotamus" },
+            "rhinoceros": { emoji: "🦏", name: "rhinoceros" },
+            "crocodile": { emoji: "🐊", name: "crocodile" },
+            "alligator": { emoji: "🐊", name: "alligator" }, // Using same emoji as crocodile
+            "snake": { emoji: "🐍", name: "snake" },
+            "parrot": { emoji: "🦜", name: "parrot" },
+            "flamingo": { emoji: "🦩", name: "flamingo" },
+            "owl": { emoji: "🦉", name: "owl" },
+            "eagle": { emoji: "🦅", name: "eagle" },
+            "dolphin": { emoji: "🐬", name: "dolphin" },
+            "whale": { emoji: "🐳", name: "whale" },
+            "shark": { emoji: "🦈", name: "shark" },
+            "octopus": { emoji: "🐙", name: "octopus" },
+            "jellyfish": { emoji: "🎐", name: "jellyfish" }, // Using wind chime as a visual metaphor
+            "turtle": { emoji: "🐢", name: "turtle" },
+            "frog": { emoji: "🐸", name: "frog" },
+            "squirrel": { emoji: "🐿️", name: "squirrel" },
+            "rabbit": { emoji: "🐇", name: "rabbit" },
+            "fox": { emoji: "🦊", name: "fox" },
+            "wolf": { emoji: "🐺", name: "wolf" },
+            "deer": { emoji: "🦌", name: "deer" },
+            "camel": { emoji: "🐪", name: "camel" },
+            "chimpanzee": { emoji: "🐒", name: "chimpanzee" }, // Using monkey emoji
+            "gorilla": { emoji: "🦍", name: "gorilla" },
+            "lemur": { emoji: "🐒", name: "lemur" }, // Using monkey emoji
+            "sloth": { emoji: "🦥", name: "sloth" },
+            "armadillo": { emoji: "🛡️", name: "armadillo" }, // Using shield for its armored appearance
+            "badger": { emoji: "🦡", name: "badger" },
+            "beaver": { emoji: "🦫", name: "beaver" },
+            "bison": { emoji: "🐃", name: "bison" }, // Using water buffalo emoji
+            "cheetah": { emoji: "🐆", name: "cheetah" },
+            "coyote": { emoji: "🐺", name: "coyote" }, // Using wolf emoji
+            "duck": { emoji: "🦆", name: "duck" },
+            "emu": { emoji: "🪶", name: "emu" }, // Using feather as a visual metaphor
+            "gazelle": { emoji: "🦌", name: "gazelle" }, // Using deer emoji
+            "hedgehog": { emoji: "🦔", name: "hedgehog" },
+            "hyena": { emoji: "🐺", name: "hyena" }, // Using wolf emoji
+            "jaguar": { emoji: "🐆", name: "jaguar" }, // Using cheetah emoji
+            "leopard": { emoji: "🐆", name: "leopard" }, // Using cheetah emoji
+            "moose": { emoji: "🦌", name: "moose" }, // Using deer emoji
+            "otter": { emoji: "🦦", name: "otter" },
+            "platypus": { emoji: "🦆", name: "platypus" }, // Using duck emoji for its bill
+            "polar bear": { emoji: "🐻‍❄️", name: "polar bear" },
+            "puma": { emoji: "🐆", name: "puma" }, // Using cheetah emoji
+            "reindeer": { emoji: "🦌", name: "reindeer" },
+            "seal": { emoji: "🦭", name: "seal" },
+            "walrus": { emoji: "🦭", name: "walrus" }, // Using seal emoji
+            "weasel": { emoji: "🦡", name: "weasel" }, // Using badger emoji
+            "wombat": { emoji: "🐻", name: "wombat" }, // Using bear emoji
+            "yak": { emoji: "🐃", name: "yak" } // Using water buffalo emoji
+        };
+
+        // This array will contain only the animal names (strings) for random selection
+        const ANIMALS = Object.keys(ANIMAL_DATA);
+
+        // Level Configuration
+        const LEVEL_CONFIG = {
+            'easy': { duration: 15, threshold: 5, badge: '🌟' }, // Score 5 to reach medium
+            'medium': { duration: 10, threshold: 20, badge: '🔥' }, // Score 20 to reach hard (5 from easy + 15 from medium)
+            'hard': { duration: 7, threshold: Infinity, badge: '🏆' } // Hard level continues indefinitely
+        };
+        const LEVELS = Object.keys(LEVEL_CONFIG); // ['easy', 'medium', 'hard']
+
+        let score = 0;
+        let lives = 3;
+        let timeLeft = 60; // Game duration in seconds
+        let gameActive = false;
+        let currentAnimalElement = null; // This will now hold the <div> containing emoji and text
+        let currentAnimalName = ""; // This holds the text name to type
+        let animalAnimationDuration = LEVEL_CONFIG.easy.duration; // Initial animation duration from easy level
+        let currentLevel = 'easy'; // Starting level
+
+        let highScores = []; // Array to store { name: string, score: number }
+        const MAX_HIGH_SCORES = 5; // Limit for leaderboard
+
+        // Timers
+        let gameTimerInterval;
+        let animalTimeout; // To track if an animal is missed
+
+        // DOM Elements
+        const gameContainer = document.getElementById('game-container');
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const livesDisplay = document.getElementById('lives');
+        const currentLevelDisplay = document.getElementById('currentLevelDisplay'); // New: Level display element
+        const animalArea = document.getElementById('animal-area');
+        const typingInput = document.getElementById('typing-input');
+        const messageArea = document.getElementById('message-area');
+        const startButton = document.getElementById('start-button');
+        const virtualKeyboard = document.getElementById('virtual-keyboard');
+
+        // Game Over Overlay Elements
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const gameOverMessage = document.getElementById('gameOverMessage');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const playAgainButton = document.getElementById('playAgainButton');
+        const highScoreSubmission = document.getElementById('highScoreSubmission');
+        const highScoreInput = document.getElementById('highScoreInput');
+        const submitScoreButton = document.getElementById('submitScoreButton');
+
+        // Level Up Overlay Elements
+        const levelUpOverlay = document.getElementById('levelUpOverlay');
+        const levelUpMessage = document.getElementById('levelUpMessage');
+        const levelUpBadge = document.getElementById('levelUpBadge');
+
+        // High Scores Display Elements
+        const highScoresDisplay = document.getElementById('highScoresDisplay');
+        const highScoresTableBody = highScoresDisplay.querySelector('tbody');
+        const closeHighScoresButton = document.getElementById('closeHighScoresButton');
+
+        // Audio Elements
+        const correctSound = document.getElementById('correctSound');
+        const incorrectSound = document.getElementById('incorrectSound');
+
+        // --- Game Initialization and Control ---
+
+        /**
+         * Initializes the game state, resets displays, and prepares for a new game.
+         */
+        function initGame() {
+            score = 0;
+            lives = 3;
+            timeLeft = 60;
+            currentLevel = 'easy'; // Always start at easy
+            animalAnimationDuration = LEVEL_CONFIG.easy.duration; // Set initial speed
+            gameActive = false;
+            currentAnimalElement = null;
+            currentAnimalName = "";
+
+            // Clear any existing animals
+            animalArea.innerHTML = '';
+            messageArea.textContent = '';
+            typingInput.value = '';
+            typingInput.disabled = true; // Disable input until game starts
+
+            updateDisplay();
+            clearInterval(gameTimerInterval);
+            clearTimeout(animalTimeout); // Clear any pending animal timeouts
+
+            // Hide all overlays
+            gameOverOverlay.classList.remove('show');
+            levelUpOverlay.classList.remove('show');
+            highScoresDisplay.classList.remove('show');
+            highScoresDisplay.style.display = 'none'; // Also hide with display property
+
+            // Show main game container
+            gameContainer.style.display = 'flex';
+
+            // Reset high score submission UI
+            highScoreSubmission.style.display = 'none';
+            highScoreInput.value = '';
+
+            startButton.textContent = 'Start Game';
+            startButton.style.display = 'block'; // Ensure initial start button is visible
+            startButton.classList.add('pulse-animation'); // Add pulse animation when idle
+            virtualKeyboard.classList.add('hidden'); // Hide keyboard initially
+
+            loadHighScores(); // Load high scores on game init
+        }
+
+        /**
+         * Starts the game. Sets up timers and spawns the first animal.
+         */
+        function startGame() {
+            initGame(); // Reset everything before starting
+            gameActive = true;
+            typingInput.disabled = false;
+            typingInput.focus(); // Focus on the input field for immediate typing
+            startButton.style.display = 'none'; // Hide initial start button
+            startButton.classList.remove('pulse-animation'); // Remove pulse animation when game starts
+
+            // Ensure game container is visible and overlays are hidden
+            gameContainer.style.display = 'flex';
+            gameOverOverlay.classList.remove('show');
+            levelUpOverlay.classList.remove('show');
+            highScoresDisplay.classList.remove('show');
+            highScoresDisplay.style.display = 'none';
+
+            // Show virtual keyboard for mobile
+            virtualKeyboard.classList.remove('hidden');
+
+            // Start game timer
+            gameTimerInterval = setInterval(updateGameTimer, 1000);
+
+            // Spawn first animal immediately
+            spawnAnimal();
+        }
+
+        /**
+         * Ends the game. Stops timers, displays final message, and shows the Game Over overlay.
+         * @param {string} message - The message to display (e.g., "Time's Up!", "You ran out of lives.").
+         */
+        function endGame(message) {
+            gameActive = false;
+            clearInterval(gameTimerInterval);
+            clearTimeout(animalTimeout); // Clear any pending animal timeouts
+            typingInput.disabled = true;
+            typingInput.value = ''; // Clear input field on game over
+            animalArea.innerHTML = ''; // Clear any remaining animals
+
+            // Hide the main game container
+            gameContainer.style.display = 'none';
+
+            // Show the Game Over overlay
+            gameOverOverlay.classList.add('show');
+            gameOverMessage.textContent = message; // Set the main message
+            finalScoreDisplay.textContent = `Your Score: ${score}`; // Display final score
+
+            // If game ended on hard level, show high score submission
+            if (currentLevel === 'hard') {
+                highScoreSubmission.style.display = 'block';
+                highScoreInput.focus(); // Focus on input for name
+            } else {
+                highScoreSubmission.style.display = 'none';
+            }
+
+            // Ensure the initial start button is hidden, as the playAgainButton is now in the overlay
+            startButton.style.display = 'none';
+            startButton.classList.remove('pulse-animation');
+            virtualKeyboard.classList.add('hidden'); // Hide keyboard on game end
+        }
+
+        /**
+         * Handles the level up logic.
+         */
+        function levelUp() {
+            gameActive = false; // Pause game momentarily
+            clearInterval(gameTimerInterval);
+            clearTimeout(animalTimeout);
+            typingInput.disabled = true;
+            animalArea.innerHTML = ''; // Clear current animal
+
+            const currentLevelIndex = LEVELS.indexOf(currentLevel);
+            const nextLevelKey = LEVELS[currentLevelIndex + 1];
+
+            if (nextLevelKey) {
+                currentLevel = nextLevelKey;
+                animalAnimationDuration = LEVEL_CONFIG[currentLevel].duration;
+
+                // Show Level Up Overlay
+                levelUpMessage.textContent = `Level Up! You reached ${currentLevel.toUpperCase()}!`;
+                levelUpBadge.textContent = LEVEL_CONFIG[currentLevel].badge;
+                levelUpOverlay.classList.add('show');
+                updateDisplay(); // Update level display immediately
+
+                // Auto-start next level after a delay
+                setTimeout(() => {
+                    levelUpOverlay.classList.remove('show');
+                    // Resume game activity and spawn next animal
+                    gameActive = true;
+                    typingInput.disabled = false;
+                    typingInput.focus();
+                    gameTimerInterval = setInterval(updateGameTimer, 1000); // Restart game timer
+                    spawnAnimal(); // Spawn new animal for the next level
+                }, 3000); // 3 seconds delay for message
+            }
+        }
+
+        // --- Display Updates ---
+
+        /**
+         * Updates the score, timer, lives, and current level displays on the screen.
+         */
+        function updateDisplay() {
+            scoreDisplay.querySelector('span').textContent = `Score: ${score}`;
+            timerDisplay.querySelector('span').textContent = `Time: ${timeLeft}s`;
+            livesDisplay.querySelector('span').innerHTML = `Lives: ${'❤️'.repeat(lives)}${'🤍'.repeat(Math.max(0, 3 - lives))}`; // Hearts for lives
+            currentLevelDisplay.querySelector('span').textContent = `Level: ${currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1)}`; // Display current level
+        }
+
+        /**
+         * Decrements the game timer and checks for game over.
+         */
+        function updateGameTimer() {
+            timeLeft--;
+            updateDisplay();
+            if (timeLeft <= 0) {
+                endGame("Time's Up!"); // Message for time running out
+            }
+        }
+
+        // --- Animal Management ---
+
+        /**
+         * Spawns a new animal (emoji + text) on the screen.
+         */
+        function spawnAnimal() {
+            // Always clear the previous animal and its timeout to ensure a clean state
+            if (currentAnimalElement && currentAnimalElement.parentNode) {
+                currentAnimalElement.parentNode.removeChild(currentAnimalElement);
+            }
+            clearTimeout(animalTimeout); // Crucial: Clear any pending timeout for the old animal
+
+            const randomIndex = Math.floor(Math.random() * ANIMALS.length);
+            const animalKey = ANIMALS[randomIndex];
+            const animalData = ANIMAL_DATA[animalKey];
+
+            currentAnimalName = animalData.name;
+
+            currentAnimalElement = document.createElement('div');
+            currentAnimalElement.classList.add('animal-display');
+
+            const emojiSpan = document.createElement('span');
+            emojiSpan.classList.add('animal-emoji');
+            emojiSpan.textContent = animalData.emoji;
+            currentAnimalElement.appendChild(emojiSpan);
+
+            const textSpan = document.createElement('span');
+            textSpan.classList.add('animal-text');
+            textSpan.textContent = animalData.name;
+            currentAnimalElement.appendChild(textSpan);
+
+            // Vertical position is handled by CSS: top: 50%; transform: translateY(-50%);
+
+            currentAnimalElement.style.animation = `move-animal ${animalAnimationDuration}s linear forwards`;
+            animalArea.appendChild(currentAnimalElement);
+
+            // Set a new timeout for the newly spawned animal
+            animalTimeout = setTimeout(() => {
+                // This block executes ONLY if the animal was NOT typed in time (i.e., it was missed)
+                if (gameActive) { // Only process if game is still active
+                    removeAnimal(currentAnimalElement, true); // Mark as missed
+                }
+            }, animalAnimationDuration * 1000);
+        }
+
+        /**
+         * Removes an animal element from the DOM.
+         * This function is called when an animal is missed (by timeout) or when a new animal is about to spawn.
+         * @param {HTMLElement} animalDisplayElement - The animal display div element to remove.
+         * @param {boolean} missed - True if the animal was missed (timeout triggered).
+         */
+        function removeAnimal(animalDisplayElement, missed = false) {
+            if (animalDisplayElement && animalDisplayElement.parentNode) {
+                animalDisplayElement.parentNode.removeChild(animalDisplayElement);
+            }
+
+            if (missed) {
+                lives--;
+                incorrectSound.currentTime = 0;
+                incorrectSound.play();
+                updateDisplay();
+                // Check if game ends due to lives running out
+                if (lives <= 0) {
+                    endGame("Game Over! You ran out of lives.");
+                    return; // Stop further processing as game is over
+                }
+                // If lives are still available, spawn the next animal immediately after a miss
+                // This ensures continuous play as requested.
+                if (gameActive) { // Only spawn if game is still active (not ended by timer)
+                    spawnAnimal();
+                }
+            }
+            // If `missed` is false, this function was called from `handleTyping` (correct word).
+            // In that case, `handleTyping` itself manages spawning the next animal or leveling up.
+        }
+
+        // --- Typing Input Handling ---
+
+        /**
+         * Handles keydown events from the typing input field.
+         * @param {KeyboardEvent} event - The keyboard event.
+         */
+        function handleTyping(event) {
+            if (!gameActive) return;
+
+            if (event.key === 'Enter') {
+                const typedText = typingInput.value.trim().toLowerCase();
+                if (typedText === currentAnimalName.toLowerCase()) {
+                    score++;
+                    typingInput.value = ''; // Clear input field
+                    correctSound.currentTime = 0;
+                    correctSound.play();
+
+                    // Correctly remove the current animal and clear its timeout
+                    if (currentAnimalElement && currentAnimalElement.parentNode) {
+                        currentAnimalElement.parentNode.removeChild(currentAnimalElement);
+                    }
+                    clearTimeout(animalTimeout); // Clear the timeout for the correctly typed animal
+
+                    // Check for level up
+                    if (currentLevel !== 'hard' && score >= LEVEL_CONFIG[currentLevel].threshold) {
+                        levelUp(); // levelUp() will handle pausing and restarting the game
+                    } else {
+                        // If not leveling up, simply spawn the next animal to continue flow
+                        spawnAnimal();
+                    }
+
+                    updateDisplay();
+
+                } else {
+                    // Provide visual feedback for incorrect typing
+                    typingInput.classList.add('border-red-500');
+                    incorrectSound.currentTime = 0;
+                    incorrectSound.play();
+                    setTimeout(() => {
+                        typingInput.classList.remove('border-red-500');
+                    }, 200);
+                    // Do not clear input, let the user correct it.
+                }
+                event.preventDefault(); // Prevent default Enter key behavior (e.g., form submission)
+            }
+        }
+
+        // --- Virtual Keyboard ---
+
+        /**
+         * Generates the virtual keyboard buttons.
+         */
+        function createVirtualKeyboard() {
+            const layout = [
+                'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
+                'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
+                'z', 'x', 'c', 'v', 'b', 'n', 'm',
+                ' ', 'Enter'
+            ];
+
+            virtualKeyboard.innerHTML = ''; // Clear existing buttons
+
+            layout.forEach(key => {
+                const button = document.createElement('button');
+                button.classList.add('keyboard-button');
+                button.textContent = key.toUpperCase(); // Display uppercase for keys
+
+                if (key === ' ') {
+                    button.classList.add('space-key');
+                    button.textContent = 'Space';
+                } else if (key === 'Enter') {
+                    button.classList.add('enter-key');
+                    button.textContent = 'Enter';
+                }
+
+                button.addEventListener('click', () => {
+                    if (!gameActive) return;
+
+                    if (key === 'Enter') {
+                        // Simulate Enter key press
+                        const event = new KeyboardEvent('keydown', { 'key': 'Enter' });
+                        typingInput.dispatchEvent(event);
+                    } else if (key === ' ') {
+                        typingInput.value += ' ';
+                    } else {
+                        typingInput.value += key;
+                    }
+                    typingInput.focus(); // Keep focus on input after virtual key press
+                });
+                virtualKeyboard.appendChild(button);
+            });
+        }
+
+        // --- High Score Management ---
+
+        /**
+         * Loads high scores from localStorage.
+         */
+        function loadHighScores() {
+            const storedScores = localStorage.getItem('animalTypingHighScores');
+            if (storedScores) {
+                highScores = JSON.parse(storedScores);
+                // Ensure scores are numbers and sort them
+                highScores.forEach(s => s.score = parseInt(s.score));
+                highScores.sort((a, b) => b.score - a.score);
+            } else {
+                highScores = [];
+            }
+        }
+
+        /**
+         * Saves high scores to localStorage.
+         */
+        function saveHighScores() {
+            localStorage.setItem('animalTypingHighScores', JSON.stringify(highScores));
+        }
+
+        /**
+         * Adds a new score to the high scores list and updates display.
+         * @param {string} name - Player's name.
+         * @param {number} score - Player's score.
+         */
+        function addHighScore(name, score) {
+            highScores.push({ name: name, score: score });
+            highScores.sort((a, b) => b.score - a.score); // Sort descending
+            highScores = highScores.slice(0, MAX_HIGH_SCORES); // Keep only top N
+            saveHighScores();
+            displayHighScores(); // Update the table
+        }
+
+        /**
+         * Displays the high scores in the table.
+         */
+        function displayHighScores() {
+            highScoresTableBody.innerHTML = ''; // Clear existing rows
+
+            if (highScores.length === 0) {
+                const row = highScoresTableBody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 3;
+                cell.textContent = "No high scores yet!";
+                cell.style.textAlign = "center";
+                cell.style.padding = "20px";
+            } else {
+                highScores.forEach((entry, index) => {
+                    const row = highScoresTableBody.insertRow();
+                    const rankCell = row.insertCell();
+                    const nameCell = row.insertCell();
+                    const scoreCell = row.insertCell();
+
+                    rankCell.textContent = index + 1;
+                    nameCell.textContent = entry.name;
+                    scoreCell.textContent = entry.score;
+                });
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Initialize the game when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            initGame();
+            createVirtualKeyboard(); // Create the keyboard once
+        });
+
+        // Initial Start button click handler
+        startButton.addEventListener('click', startGame);
+
+        // Play Again button click handler (on the Game Over overlay)
+        playAgainButton.addEventListener('click', () => {
+            // Hide game over overlay
+            gameOverOverlay.classList.remove('show');
+            // Show high scores display
+            highScoresDisplay.classList.add('show');
+            highScoresDisplay.style.display = 'flex'; // Make sure it's visible
+            displayHighScores(); // Ensure scores are updated before showing
+        });
+
+        // Submit Score button handler (on the Game Over overlay for hard level)
+        submitScoreButton.addEventListener('click', () => {
+            const playerName = highScoreInput.value.trim();
+            if (playerName) {
+                addHighScore(playerName, score);
+                highScoreSubmission.style.display = 'none'; // Hide input after submission
+                gameOverMessage.textContent = "Score Submitted!"; // Update message (optional)
+                // Immediately transition to showing the high scores table after submission
+                gameOverOverlay.classList.remove('show');
+                highScoresDisplay.classList.add('show');
+                highScoresDisplay.style.display = 'flex';
+            } else {
+                // In a real app, use a custom modal instead of alert()
+                alert("Please enter your name!");
+            }
+        });
+
+        // Close High Scores button handler
+        closeHighScoresButton.addEventListener('click', () => {
+            highScoresDisplay.classList.remove('show');
+            highScoresDisplay.style.display = 'none';
+            // After closing high scores, re-initialize to show the start button
+            initGame();
+        });
+
+        // Typing input keydown handler
+        typingInput.addEventListener('keydown', handleTyping);
+
+    </script>
+</body>
+</html>
